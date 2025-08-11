@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flappy Bird Clone</title>
+<style>
+body { margin:0; background:#70c5ce; display:flex; justify-content:center; align-items:center; height:100vh; }
+canvas { background:#70c5ce; display:block; }
+button { position:absolute; top:20px; left:50%; transform:translateX(-50%); padding:10px 20px; font-size:20px; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="320" height="480"></canvas>
+<button id="startBtn">Play</button>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let frames = 0;
+const DEGREE = Math.PI/180;
+const state = { current: 0, getReady: 0, game: 1, over: 2 };
+const bird = {
+  x:50, y:150, w:34, h:26, frame:0, gravity:0.25, jump:4.6, speed:0, rotation:0,
+  draw(){ ctx.fillStyle = "yellow"; ctx.fillRect(this.x, this.y, this.w, this.h); },
+  flap(){ this.speed = -this.jump; },
+  update(){
+    if(state.current === state.getReady) this.y = 150;
+    else {
+      this.speed += this.gravity;
+      this.y += this.speed;
+      if(this.y + this.h >= canvas.height - 80){ this.y = canvas.height - 80 - this.h; if(state.current===state.game) state.current=state.over; }
+    }
+  },
+  reset(){ this.speed=0; this.y=150; }
+};
+const pipes = {
+  position:[], top: {h:150}, bottom: {h:150}, w:50, gap:100, dx:2,
+  draw(){
+    ctx.fillStyle = "green";
+    for(let i=0;i<this.position.length;i++){
+      let p = this.position[i];
+      ctx.fillRect(p.x, p.y, this.w, this.top.h);
+      ctx.fillRect(p.x, p.y+this.top.h+this.gap, this.w, canvas.height - (p.y+this.top.h+this.gap));
+    }
+  },
+  update(){
+    if(state.current !== state.game) return;
+    if(frames%100===0) this.position.push({x:canvas.width, y:Math.floor(Math.random()*-100)});
+    for(let i=0;i<this.position.length;i++){
+      let p = this.position[i]; p.x -= this.dx;
+      if(p.x + this.w <= 0) this.position.shift();
+      if(bird.x < p.x+this.w && bird.x+bird.w > p.x && (bird.y < p.y+this.top.h || bird.y+bird.h > p.y+this.top.h+this.gap)){ state.current=state.over; }
+    }
+  },
+  reset(){ this.position=[]; }
+};
+function drawFloor(){ ctx.fillStyle="#ded895"; ctx.fillRect(0, canvas.height-80, canvas.width, 80); }
+function loop(){ frames++; ctx.clearRect(0,0,canvas.width,canvas.height); bird.draw(); pipes.draw(); drawFloor(); bird.update(); pipes.update(); requestAnimationFrame(loop); }
+canvas.addEventListener("click", function(){ if(state.current===state.getReady){ state.current=state.game; } else if(state.current===state.game){ bird.flap(); } else if(state.current===state.over){ bird.reset(); pipes.reset(); state.current=state.getReady; }});
+document.getElementById("startBtn").addEventListener("click", function(){ state.current=state.game; this.style.display="none"; });
+loop();
+</script>
+</body>
+</html>
